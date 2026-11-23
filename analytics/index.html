@@ -1,66 +1,809 @@
-⚠️
-Mercury SLP — Analytical Dashboard
-Temporal, geographic & manufacturer insights · Kennedy et al. (2026) IJERPH · 2,105 records · 2009–2026
-🗃️ View full database → 📊
-2,105
-records 🌏
-31
-collection countries 🏭
-45
-mfg countries ⚠️
-54%
-above 1 ppm limit 🆕
-29
-new toxic brands in 2025 📅
-88%
-violation rate — 2023 (worst year)
-📅 Temporal Trends
-🌍 Geography
-🧴 Product Categories
-🏭 Manufacturers
-🔬 Brand Signals
-Mercury contamination trends, 2009–2026
-90.4% of all records were collected between 2017 and 2026, reflecting rapid growth in international surveillance programs. Despite enforcement actions and product recalls, violation rates have trended sharply upward — from 12% in 2017 to 88% in 2023.
-🚨 The situation is worsening, not improving. The share of samples exceeding the 1 ppm legal threshold rose from 12% in 2017 to 88% in 2023. Pakistan has displaced Mexico and India as the dominant manufacturing source, now attributed to 52–70% of contaminated products. New toxic brands entered the market at 24–29 per year from 2022–2025 — enforcement has not deterred new entrants.
-% OF SAMPLES EXCEEDING 1 PPM LEGAL LIMIT— by year of collection
-Each point represents the fraction of samples from that collection year that exceeded the 1 ppm legal threshold. Only years with ≥10 samples shown. 2026 is a partial year (n=23).
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mercury SLP — Analytical Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--card:#161b22;--card2:#1c2230;--border:#21262d;
+  --txt:#c9d1d9;--muted:#6e7681;--accent:#58a6ff;
+  --red:#f85149;--orange:#d29922;--yellow:#e3b341;--green:#3fb950;--purple:#bc8cff;
+  --surface:rgba(255,255,255,0.03);
+}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5}
 
-SAMPLE VOLUME BY SEVERITY TIER— stacked by year
+/* ── HEADER ─────────────────────────────────────────────────── */
+header{background:#0d1117;border-bottom:1px solid var(--border);padding:20px 28px 16px}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.hdr-left{display:flex;align-items:center;gap:12px}
+.hdr-icon{width:42px;height:42px;background:linear-gradient(135deg,#f85149 0%,#7f1d1d 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.h1{font-size:1.25rem;font-weight:700;color:#f0f6fc;line-height:1.2}
+.h1-sub{font-size:0.78rem;color:var(--muted);margin-top:3px}
+.db-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:var(--accent);text-decoration:none;font-size:0.78rem;font-weight:500;white-space:nowrap;transition:background .15s}
+.db-btn:hover{background:#2d333b}
+.kpi-row{display:flex;gap:8px;flex-wrap:wrap}
+.kpi{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:0.76rem;color:var(--muted)}
+.kpi strong{color:#f0f6fc;font-size:0.9rem}
+.kpi-warn{border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.07)}
+.kpi-warn strong{color:#f85149}
+.kpi-purple{border-color:rgba(188,140,255,.4);background:rgba(188,140,255,.07)}
+.kpi-purple strong{color:#bc8cff}
 
-Compliant / ND (<1 ppm)
+/* ── TAB NAV ─────────────────────────────────────────────────── */
+.tabnav{display:flex;border-bottom:1px solid var(--border);padding:0 28px;overflow-x:auto;background:var(--bg)}
+.tabnav::-webkit-scrollbar{height:0}
+.tn{padding:11px 18px;cursor:pointer;font-size:0.82rem;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+.tn:hover{color:var(--txt)}
+.tn.on{color:var(--accent);border-bottom-color:var(--accent)}
 
-Above limit (1–999)
+/* ── PANELS ─────────────────────────────────────────────────── */
+.panel{display:none;padding:22px 28px;max-width:1360px}
+.panel.on{display:block}
+.sec-hdr{margin-bottom:18px}
+.sec-hdr h2{font-size:0.95rem;font-weight:700;color:#f0f6fc;margin-bottom:4px}
+.sec-hdr p{font-size:0.8rem;color:var(--muted);max-width:800px;line-height:1.65}
 
-High (1,000–9,999)
+/* ── CALLOUTS ───────────────────────────────────────────────── */
+.alert{padding:12px 16px;border-radius:8px;font-size:0.81rem;line-height:1.65;margin-bottom:18px}
+.alert-red{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.22);color:#ffa8a4}
+.alert-blue{background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.22);color:#a5c8ff}
+.alert strong{font-weight:700}
 
-Extreme (≥10,000)
+/* ── GRID LAYOUTS ───────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+@media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
 
-NEW TOXIC BRANDS FIRST DETECTED— per year (≥1,000 ppm)
-Count of distinct brand names newly appearing in the dataset with mercury concentrations ≥1,000 ppm.
+/* ── CHART CARDS ────────────────────────────────────────────── */
+.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+.cc h3{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px}
+.cc h3 em{font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;color:var(--txt);font-size:0.8rem;margin-left:5px}
+.cc-desc{font-size:0.75rem;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.cw{position:relative}
+.cc.nb{margin-bottom:0}
 
-MANUFACTURING COUNTRY SHARE— % of records attributed per year
-Pakistan's share of attributed manufacturing has grown from ~11% in 2017 to 52–70% in 2025–2026, while India and Mexico have declined. Some years have high "Unknown" attribution reducing individual country totals.
+/* ── LEGEND ─────────────────────────────────────────────────── */
+.leg-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--muted)}
+.leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.leg-ci{width:12px;height:3px;border-radius:1px;flex-shrink:0}
 
-🇵🇰 Pakistan
+/* ── STAT TILES ─────────────────────────────────────────────── */
+.stat-tile{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.st-val{font-size:1.9rem;font-weight:800;color:#f0f6fc;line-height:1}
+.st-lbl{font-size:0.7rem;color:var(--muted);margin-top:5px}
+.st-note{font-size:0.75rem;margin-top:6px}
 
-🇲🇽 Mexico
+/* ── HEATMAP ────────────────────────────────────────────────── */
+.hmap-wrap{overflow-x:auto;margin-top:4px}
+.hmap{border-collapse:collapse;white-space:nowrap}
+.hmap th{font-size:0.65rem;color:var(--muted);padding:4px 5px;text-align:center;font-weight:600}
+.hmap .rlbl{text-align:right;padding-right:10px;color:var(--txt);font-size:0.7rem;font-weight:500;min-width:130px}
+.hmap td{width:40px;height:28px;text-align:center;font-size:0.68rem;font-weight:600;border:2px solid #0d1117;border-radius:3px;cursor:default}
+.hmap-note{font-size:0.68rem;color:var(--muted);margin-top:7px}
 
-🇮🇳 India
+/* ── MFR CARDS ──────────────────────────────────────────────── */
+.mfr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-bottom:14px}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.mc-crit{border-left:3px solid var(--red)}
+.mc-high{border-left:3px solid var(--orange)}
+.mc-safe{border-left:3px solid var(--green)}
+.mc-head{padding:11px 13px;display:flex;justify-content:space-between;align-items:flex-start}
+.mc-name{font-weight:700;font-size:0.85rem;color:#f0f6fc}
+.mc-loc{font-size:0.69rem;color:var(--muted);margin-top:2px}
+.mc-badge{font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-left:8px}
+.bd-crit{background:rgba(248,81,73,.13);color:#ffa8a4;border:1px solid rgba(248,81,73,.35)}
+.bd-high{background:rgba(210,153,34,.13);color:#f0c264;border:1px solid rgba(210,153,34,.35)}
+.bd-safe{background:rgba(63,185,80,.13);color:#7ee787;border:1px solid rgba(63,185,80,.35)}
+.mc-stats{padding:0 13px 9px;display:flex;gap:18px;flex-wrap:wrap}
+.mc-s{display:flex;flex-direction:column}
+.mc-sv{font-size:0.9rem;font-weight:600;color:#f0f6fc}
+.mc-sl{font-size:0.62rem;color:var(--muted)}
+.mc-brands{padding:0 13px 11px;display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:0.62rem;padding:2px 6px;border-radius:4px;background:#21262d;color:var(--txt);border:1px solid var(--border)}
+.chip-t{background:rgba(248,81,73,.09);color:#ffa8a4;border-color:rgba(248,81,73,.28)}
+.mc-note{padding:0 13px 10px;font-size:0.7rem;color:#ffa8a4}
 
-🇨🇳 China
+/* ── VARIANCE TABLE ─────────────────────────────────────────── */
+.vtbl{width:100%;border-collapse:collapse}
+.vtbl th{background:var(--card2);padding:8px 11px;text-align:left;font-size:0.68rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
+.vtbl td{padding:9px 11px;border-bottom:1px solid #161b22;font-size:0.78rem;vertical-align:top}
+.vtbl tr:hover td{background:var(--card2)}
+.rx{color:var(--red);font-weight:700}
+.ro{color:var(--orange);font-weight:600}
+.vtbl-wrap{overflow-x:auto}
 
-88%
-Worst year — 2023 violation rate
-230 samples; 202 above 1 ppm; mean 11,656 ppm
-210,000 ppm
-Maximum recorded (2026, n=23)
-210× the highest tier threshold of 1,000 ppm; 210,000× the legal limit
-+96%
-Records collected 2022–2026 vs 2017–2021
-Surveillance programs intensifying — but contamination is keeping pace
-ℹ️ Limitation noted in the original paper (§4.3): "Variability in the number of samples collected each year and method of collection posed difficulties in determining trends in SLP mercury content geographically or over time." Year-to-year changes may partly reflect shifts in which products were targeted, not only true market changes.
-Source: Kennedy et al. (2026). Mercury in Skin Lightening Products: Seventeen Years of U.S. and Global Data for Stronger Public Health Action. Int. J. Environ. Res. Public Health, 23, 1407. doi:10.3390/ijerph23111407
-📦 Data: Dryad repository
-🗃️ Database: surescientific.github.io/mercury-db
-License: CC BY 4.0
-⚕️ For public health research only. Not medical advice.
+/* ── FOOTER ─────────────────────────────────────────────────── */
+footer{padding:14px 28px;border-top:1px solid var(--border);color:var(--muted);font-size:0.72rem;line-height:1.9}
+footer a{color:var(--accent);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.ft-row{display:flex;gap:20px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header>
+  <div class="hdr-top">
+    <div class="hdr-left">
+      <div class="hdr-icon">⚠️</div>
+      <div>
+        <div class="h1">Mercury SLP — Analytical Dashboard</div>
+        <div class="h1-sub">Temporal, geographic &amp; manufacturer insights · Kennedy et al. (2026) IJERPH · 2,105 records · 2009–2026</div>
+      </div>
+    </div>
+    <a href="https://surescientific.github.io/mercury-db/" class="db-btn" target="_blank">🗃️ View full database →</a>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi">📊 <strong>2,105</strong> records</div>
+    <div class="kpi">🌏 <strong>31</strong> collection countries</div>
+    <div class="kpi">🏭 <strong>45</strong> mfg countries</div>
+    <div class="kpi kpi-warn">⚠️ <strong>54%</strong> above 1 ppm limit</div>
+    <div class="kpi kpi-warn">🆕 <strong>29</strong> new toxic brands in 2025</div>
+    <div class="kpi kpi-purple">📅 <strong>88%</strong> violation rate — 2023 (worst year)</div>
+  </div>
+</header>
+
+<!-- ══ TAB NAV ═════════════════════════════════════════════════════ -->
+<div class="tabnav">
+  <div class="tn on"  onclick="tab('temporal',this)">📅 Temporal Trends</div>
+  <div class="tn"     onclick="tab('geo',this)">🌍 Geography</div>
+  <div class="tn"     onclick="tab('products',this)">🧴 Product Categories</div>
+  <div class="tn"     onclick="tab('mfr',this)">🏭 Manufacturers</div>
+  <div class="tn"     onclick="tab('signals',this)">🔬 Brand Signals</div>
+</div>
+
+<!-- ══ PANEL: TEMPORAL ════════════════════════════════════════════ -->
+<div class="panel on" id="p-temporal">
+  <div class="sec-hdr">
+    <h2>Mercury contamination trends, 2009–2026</h2>
+    <p>90.4% of all records were collected between 2017 and 2026, reflecting rapid growth in international surveillance programs. Despite enforcement actions and product recalls, violation rates have trended sharply upward — from 12% in 2017 to 88% in 2023.</p>
+  </div>
+
+  <div class="alert alert-red">
+    🚨 <strong>The situation is worsening, not improving.</strong> The share of samples exceeding the 1 ppm legal threshold rose from 12% in 2017 to 88% in 2023. Pakistan has displaced Mexico and India as the dominant manufacturing source, now attributed to 52–70% of contaminated products. New toxic brands entered the market at 24–29 per year from 2022–2025 — enforcement has not deterred new entrants.
+  </div>
+
+  <div class="cc">
+    <h3>% of samples exceeding 1 ppm legal limit<em>— by year of collection</em></h3>
+    <p class="cc-desc">Each point represents the fraction of samples from that collection year that exceeded the 1 ppm legal threshold. Only years with ≥10 samples shown. 2026 is a partial year (n=23).</p>
+    <div class="cw" style="height:210px"><canvas id="cViolRate"></canvas></div>
+  </div>
+
+  <div class="g2">
+    <div class="cc nb">
+      <h3>Sample volume by severity tier<em>— stacked by year</em></h3>
+      <div class="leg-row">
+        <div class="leg"><div class="leg-sq" style="background:#3fb950"></div>Compliant / ND (&lt;1 ppm)</div>
+        <div class="leg"><div class="leg-sq" style="background:#e3b341"></div>Above limit (1–999)</div>
+        <div class="leg"><div class="leg-sq" style="background:#d29922"></div>High (1,000–9,999)</div>
+        <div class="leg"><div class="leg-sq" style="background:#f85149"></div>Extreme (≥10,000)</div>
+      </div>
+      <div class="cw" style="height:230px"><canvas id="cVolume"></canvas></div>
+    </div>
+    <div class="cc nb">
+      <h3>New toxic brands first detected<em>— per year (≥1,000 ppm)</em></h3>
+      <p class="cc-desc">Count of distinct brand names newly appearing in the dataset with mercury concentrations ≥1,000 ppm.</p>
+      <div class="cw" style="height:230px"><canvas id="cNewBrands"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cc">
+    <h3>Manufacturing country share<em>— % of records attributed per year</em></h3>
+    <p class="cc-desc">Pakistan's share of attributed manufacturing has grown from ~11% in 2017 to 52–70% in 2025–2026, while India and Mexico have declined. Some years have high "Unknown" attribution reducing individual country totals.</p>
+    <div class="leg-row">
+      <div class="leg"><div class="leg-ci" style="background:#f85149"></div>🇵🇰 Pakistan</div>
+      <div class="leg"><div class="leg-ci" style="background:#d29922"></div>🇲🇽 Mexico</div>
+      <div class="leg"><div class="leg-ci" style="background:#58a6ff"></div>🇮🇳 India</div>
+      <div class="leg"><div class="leg-ci" style="background:#bc8cff"></div>🇨🇳 China</div>
+    </div>
+    <div class="cw" style="height:195px"><canvas id="cCtryShare"></canvas></div>
+  </div>
+
+  <div class="g3">
+    <div class="stat-tile">
+      <div class="st-val" style="color:#f85149">88%</div>
+      <div class="st-lbl">Worst year — 2023 violation rate</div>
+      <div class="st-note" style="color:var(--muted)">230 samples; 202 above 1 ppm; mean 11,656 ppm</div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-val" style="color:#bc8cff">210,000 ppm</div>
+      <div class="st-lbl">Maximum recorded (2026, n=23)</div>
+      <div class="st-note" style="color:var(--muted)">210× the highest tier threshold of 1,000 ppm; 210,000× the legal limit</div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-val" style="color:#3fb950">+96%</div>
+      <div class="st-lbl">Records collected 2022–2026 vs 2017–2021</div>
+      <div class="st-note" style="color:var(--muted)">Surveillance programs intensifying — but contamination is keeping pace</div>
+    </div>
+  </div>
+
+  <div class="alert alert-blue" style="margin-top:4px">
+    ℹ️ <strong>Limitation noted in the original paper (§4.3):</strong> "Variability in the number of samples collected each year and method of collection posed difficulties in determining trends in SLP mercury content geographically or over time." Year-to-year changes may partly reflect shifts in which products were targeted, not only true market changes.
+  </div>
+</div>
+
+<!-- ══ PANEL: GEOGRAPHY ════════════════════════════════════════════ -->
+<div class="panel" id="p-geo">
+  <div class="sec-hdr">
+    <h2>Geographic patterns of contamination</h2>
+    <p>Records were collected across 31 countries and attributed to manufacturers in 45 countries. The United States leads in collection volume; Pakistan has become the dominant attributed manufacturing source from 2022 onward.</p>
+  </div>
+
+  <div class="cc">
+    <h3>Toxic samples by collection country × year<em>— cell value = count exceeding 1 ppm</em></h3>
+    <p class="cc-desc">Colour intensity is proportional to the count of samples exceeding 1 ppm from that country–year combination. Zero cells are dark; hover for exact values.</p>
+    <div class="hmap-wrap"><div id="hmapContainer"></div></div>
+    <div class="hmap-note">* 2026: partial year. Values are approximate counts derived from dataset records.</div>
+  </div>
+
+  <div class="g2">
+    <div class="cc nb">
+      <h3>Top manufacturing countries<em>— total records attributed</em></h3>
+      <p class="cc-desc">Pakistan leads with 632 records attributed, more than twice Mexico (178).</p>
+      <div class="cw" style="height:270px"><canvas id="cMfgCtry"></canvas></div>
+    </div>
+    <div class="cc nb">
+      <h3>Pakistan's rising share<em>— % of annual records</em></h3>
+      <div class="cw" style="height:270px"><canvas id="cPakShare"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL: PRODUCTS ════════════════════════════════════════════ -->
+<div class="panel" id="p-products">
+  <div class="sec-hdr">
+    <h2>Product category breakdown</h2>
+    <p>Cream products account for 79% (n=1,664) of all records. Soap, lotion and serum categories are tested far less frequently, limiting conclusions about their true contamination rates.</p>
+  </div>
+
+  <div class="alert alert-blue">
+    🧴 <strong>Surveillance bias note:</strong> The dataset reflects regulatory targeting priorities, not market share. Cream-form products present higher dermal absorption risk and have been the primary focus of testing. Categories with zero contamination (Gel, Butter) each have n≤23 samples — under-testing cannot be ruled out.
+  </div>
+
+  <div class="cc">
+    <h3>Mercury severity by product category<em>— samples with n ≥ 2</em></h3>
+    <div class="leg-row">
+      <div class="leg"><div class="leg-sq" style="background:#3fb950"></div>Compliant / ND (&lt;1 ppm)</div>
+      <div class="leg"><div class="leg-sq" style="background:#e3b341"></div>Above limit (1–999 ppm)</div>
+      <div class="leg"><div class="leg-sq" style="background:#d29922"></div>High (1,000–9,999 ppm)</div>
+      <div class="leg"><div class="leg-sq" style="background:#f85149"></div>Extreme (≥10,000 ppm)</div>
+    </div>
+    <div class="cw" style="height:300px"><canvas id="cCatBr"></canvas></div>
+  </div>
+
+  <div class="g2">
+    <div class="cc nb">
+      <h3>Cream category: year-by-year severity trend</h3>
+      <div class="leg-row">
+        <div class="leg"><div class="leg-sq" style="background:#3fb950"></div>Compliant / ND</div>
+        <div class="leg"><div class="leg-sq" style="background:#d29922"></div>High (1k–9,999)</div>
+        <div class="leg"><div class="leg-sq" style="background:#f85149"></div>Extreme (≥10k)</div>
+      </div>
+      <div class="cw" style="height:230px"><canvas id="cCreamYr"></canvas></div>
+    </div>
+    <div class="cc nb">
+      <h3>Category distribution<em>— share of all records</em></h3>
+      <div class="cw" style="height:230px"><canvas id="cCatDist"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL: MANUFACTURERS ═══════════════════════════════════════ -->
+<div class="panel" id="p-mfr">
+  <div class="sec-hdr">
+    <h2>Key manufacturers identified in the dataset</h2>
+    <p>16 manufacturers were traced from product labels. The dataset is dominated by a small cluster of Pakistani manufacturers concentrated in Swat/KPK and Lahore provinces, most of whom supply products found across multiple continents.</p>
+  </div>
+
+  <div class="mfr-grid" id="mfrGrid"></div>
+
+  <div class="cc">
+    <h3>Critical manufacturers — peak Hg concentration (log scale)<em></em></h3>
+    <p class="cc-desc">Peak mercury concentrations recorded across all samples attributed to each manufacturer. Log scale used due to the extreme range (1 ppm–74,800 ppm). The 1 ppm legal limit is shown as a reference line.</p>
+    <div class="cw" style="height:250px"><canvas id="cMfrPeak"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ PANEL: SIGNALS ══════════════════════════════════════════════ -->
+<div class="panel" id="p-signals">
+  <div class="sec-hdr">
+    <h2>Intra-brand variance — counterfeit &amp; adulteration signals</h2>
+    <p>When the same brand tests at wildly different concentrations in different markets, three explanations apply: (1) different SKUs or formulations for different markets; (2) post-manufacture adulteration in the supply chain; or (3) deliberate region-specific toxic formulation. The article confirmed that Pond's US was post-manufacture adulteration.</p>
+  </div>
+
+  <div class="alert alert-red">
+    🔬 <strong>Extreme variance ratios indicate counterfeit or adulterated supply chains.</strong> Faiza shows a &gt;36 million× range (0.001 ppm in Belgium vs 36,000 ppm in US samples). Goree shows a 303,913× range. These are not measurement errors — they demonstrate that the same brand name is applied to fundamentally different products in different markets.
+  </div>
+
+  <div class="cc">
+    <h3>Brand variance analysis<em>— ratio = max ppm ÷ min detected ppm</em></h3>
+    <div class="vtbl-wrap">
+      <table class="vtbl" id="varTable">
+        <thead>
+          <tr>
+            <th>Brand</th>
+            <th>Max ppm</th>
+            <th>Min ppm</th>
+            <th>Ratio</th>
+            <th>Manufacturer</th>
+            <th>Interpretation</th>
+          </tr>
+        </thead>
+        <tbody id="varBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="cc">
+    <h3>Variance ratio comparison<em>— bars show max/min ratio (log scale)</em></h3>
+    <div class="cw" style="height:230px"><canvas id="cVariance"></canvas></div>
+  </div>
+
+  <div class="alert alert-blue" style="margin-top:0">
+    🔐 <strong>Policy implication:</strong> Brand-level monitoring is insufficient without supply-chain tracking. A "clean" test of one Faiza or Goree unit does not confirm that another unit purchased in the same week at the same store will be safe. Lot-based testing and customs seizure linked to specific production batches would be more effective than point-of-sale sampling.
+  </div>
+</div>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════ -->
+<footer>
+  <div class="ft-row">
+    <div>
+      <strong style="color:#f0f6fc">Source:</strong>
+      Kennedy et al. (2026). Mercury in Skin Lightening Products: Seventeen Years of U.S. and Global Data for Stronger Public Health Action.
+      <em>Int. J. Environ. Res. Public Health</em>, 23, 1407.
+      <a href="https://doi.org/10.3390/ijerph23111407" target="_blank">doi:10.3390/ijerph23111407</a>
+    </div>
+  </div>
+  <div class="ft-row" style="margin-top:5px">
+    <span>📦 Data: <a href="https://doi.org/10.5061/dryad.h70rxwf0r" target="_blank">Dryad repository</a></span>
+    <span>🗃️ Database: <a href="https://surescientific.github.io/mercury-db/" target="_blank">surescientific.github.io/mercury-db</a></span>
+    <span>License: CC BY 4.0</span>
+    <span style="color:#484f58">⚕️ For public health research only. Not medical advice.</span>
+  </div>
+</footer>
+
+<script>
+// ═══ DATA ═══════════════════════════════════════════════════════════
+const YRS = [2009,2010,2011,2012,2013,2014,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+const YD = {
+  2009:{n:10, pct:0,  safe:10, mod:0,  h:0,  e:0,  mean:0,     newT:0},
+  2010:{n:10, pct:80, safe:2,  mod:2,  h:0,  e:6,  mean:21502, newT:2},
+  2011:{n:2,  pct:50, safe:1,  mod:0,  h:0,  e:1,  mean:6500,  newT:1},
+  2012:{n:121,pct:13, safe:106,mod:5,  h:8,  e:2,  mean:1143,  newT:8},
+  2013:{n:17, pct:71, safe:5,  mod:0,  h:2,  e:10, mean:35600, newT:0},
+  2014:{n:30, pct:10, safe:27, mod:0,  h:1,  e:2,  mean:2383,  newT:1},
+  2016:{n:11, pct:0,  safe:11, mod:0,  h:0,  e:0,  mean:0,     newT:0},
+  2017:{n:285,pct:12, safe:251,mod:13, h:13, e:8,  mean:687,   newT:16},
+  2018:{n:106,pct:28, safe:70, mod:8,  h:19, e:9,  mean:2096,  newT:16},
+  2019:{n:387,pct:55, safe:173,mod:60, h:69, e:85, mean:5059,  newT:27},
+  2020:{n:43, pct:47, safe:23, mod:4,  h:12, e:4,  mean:4726,  newT:1},
+  2021:{n:280,pct:49, safe:143,mod:7,  h:60, e:70, mean:6309,  newT:3},
+  2022:{n:134,pct:63, safe:49, mod:28, h:22, e:35, mean:5152,  newT:24},
+  2023:{n:230,pct:88, safe:28, mod:56, h:67, e:79, mean:11656, newT:12},
+  2024:{n:284,pct:57, safe:122,mod:40, h:70, e:52, mean:4572,  newT:26},
+  2025:{n:132,pct:65, safe:46, mod:10, h:35, e:41, mean:6560,  newT:29},
+  2026:{n:23, pct:96, safe:1,  mod:0,  h:5,  e:17, mean:31810, newT:6},
+};
+
+const SHAR_YRS=[2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+const PAK={2016:18,2017:11,2018:17,2019:21,2020:0,2021:22,2022:33,2023:28,2024:32,2025:52,2026:70};
+const MEX={2016:0, 2017:0, 2018:7, 2019:6, 2020:40,2021:11,2022:9, 2023:13,2024:0, 2025:14,2026:9};
+const IND={2016:18,2017:15,2018:17,2019:4, 2020:0,2021:0, 2022:1, 2023:0, 2024:5, 2025:0, 2026:9};
+const CHN={2016:0, 2017:0, 2018:7, 2019:5, 2020:14,2021:7, 2022:0, 2023:14,2024:16,2025:0, 2026:0};
+
+const CATS=[
+  {c:"Cream",    n:1664,e:406,h:360,m:0,  s:898},
+  {c:"Soap",     n:144, e:2,  h:6,  m:17, s:119},
+  {c:"Unknown",  n:111, e:13, h:15, m:11, s:72},
+  {c:"Lotion",   n:63,  e:0,  h:0,  m:2,  s:61},
+  {c:"Serum",    n:27,  e:0,  h:0,  m:7,  s:20},
+  {c:"Gel",      n:23,  e:0,  h:0,  m:0,  s:23},
+  {c:"Mask",     n:15,  e:0,  h:0,  m:4,  s:11},
+  {c:"Powder",   n:13,  e:0,  h:0,  m:4,  s:9},
+  {c:"Cleanser", n:9,   e:0,  h:0,  m:2,  s:7},
+  {c:"Face Wash",n:7,   e:1,  h:0,  m:1,  s:5},
+  {c:"Scrub",    n:4,   e:0,  h:0,  m:2,  s:2},
+  {c:"Deodorant",n:3,   e:0,  h:1,  m:0,  s:2},
+  {c:"Butter",   n:3,   e:0,  h:0,  m:0,  s:3},
+];
+
+const CREAM_YRS=[2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+const CYR={
+  2017:{s:145,h:10,e:5},2018:{s:37,h:16,e:7},2019:{s:170,h:58,e:72},
+  2020:{s:17,h:10,e:3}, 2021:{s:90,h:50,e:60},2022:{s:47,h:18,e:30},
+  2023:{s:48,h:60,e:72},2024:{s:102,h:62,e:46},2025:{s:34,h:30,e:36},2026:{s:0,h:4,e:14}
+};
+
+const MFG_CTRY=[
+  ["Pakistan",632],["Unknown/Multi",280],["Mexico",178],["China",156],
+  ["India",98],["United States",87],["Indonesia",64],["Philippines",47],
+  ["Thailand",38],["Côte d'Ivoire",28]
+];
+
+const MANUFACTURERS=[
+  {name:"Goree Cosmetics",loc:"Lahore / Mingora, Pakistan",brands:["Goree","Goree Beauty Cream","Goree Day & Night"],n:142,maxP:69900,pct:98,cols:"PH·US·IN·BD·TH",tier:"crit"},
+  {name:"Kreative Cosmetics",loc:"Swat / Mingora, Pakistan",brands:["Chandni","Sandal","Due","Kiran","Noor","Sara Gold"],n:48,maxP:74800,pct:92,cols:"US·BD·IN·TH",tier:"crit"},
+  {name:"Khyber Chemical Works",loc:"Peshawar, Pakistan",brands:["Golden Pearl","Golden Pearl Face"],n:62,maxP:67400,pct:81,cols:"US·UK·IN·BD",tier:"crit"},
+  {name:"Shaheen Cosmetics",loc:"Lahore, Pakistan",brands:["Face Fresh","Yusma","Toone"],n:38,maxP:37500,pct:95,cols:"IN·ZA·US·BE",tier:"crit"},
+  {name:"AM Cosmetics (Faiza)",loc:"Lahore, Pakistan",brands:["Faiza Beauty Cream","Faiza White"],n:51,maxP:36000,pct:88,cols:"US·BD·IN·BE",tier:"crit"},
+  {name:"White Gold International",loc:"Swat, Pakistan",brands:["Fresh White Gold","White Gold","Golden Star"],n:28,maxP:29000,pct:100,cols:"US·UK",tier:"crit"},
+  {name:"Unilever",loc:"India / Mexico / Indonesia",brands:["Pond's","Fair & Lovely","Dove","Glow And Lovely"],n:39,maxP:41900,pct:56,cols:"US·IN·BD·PH",tier:"high",note:"Pond's US: 41,900 ppm — post-manufacture adulteration (confirmed by article)"},
+  {name:"PT Cressindo Kusuma",loc:"Indonesia",brands:["Temulawak","Vit E Cream"],n:22,maxP:65000,pct:77,cols:"ID·TH·US",tier:"crit"},
+  {name:"Noorani & Company",loc:"Lahore, Pakistan",brands:["Kanza","Kanza Gold"],n:18,maxP:21000,pct:83,cols:"US·FR·IN·UG",tier:"crit"},
+  {name:"N.P. Gandour",loc:"Senegal / Côte d'Ivoire",brands:["Bio Claire","Carotone","Gluta White"],n:11,maxP:0,pct:0,cols:"BE·KE·ZA·US",tier:"safe"},
+];
+
+const VARIANCES=[
+  {brand:"Faiza",maxP:36000,minP:0.001,ratio:"36,000,000×",mfr:"AM Cosmetics",interp:"US samples: 36,000 ppm; Belgium samples: 0.001 ppm — same brand name, entirely different formulations"},
+  {brand:"Goree",maxP:69900,minP:0.23,ratio:"303,913×",mfr:"Goree Cosmetics",interp:"Philippines & US units: >50,000 ppm; some India/Bangladesh units: <1 ppm"},
+  {brand:"Temulawak",maxP:65000,minP:0.1,ratio:"650,000×",mfr:"PT Cressindo Kusuma",interp:"Indonesia/Thailand: 55,000–65,000 ppm; US import: 0.1 ppm — legitimate vs counterfeit split"},
+  {brand:"Pond's",maxP:41900,minP:0,ratio:"41,900× (vs ND)",mfr:"Unilever (US distributor)",interp:"US-sold Pond's: 41,900 ppm — article confirms post-manufacture adulteration; Unilever manufacturing records show compliant"},
+  {brand:"Golden Pearl",maxP:67400,minP:0.22,ratio:"306,363×",mfr:"Khyber Chemical Works",interp:"India units near ND; US/UK units: 20,000–67,400 ppm"},
+  {brand:"Face Fresh",maxP:37500,minP:1,ratio:"37,500×",mfr:"Shaheen Cosmetics",interp:"India: 37,500 ppm; Pakistan domestic: 829 ppm — possible export-only toxic formulation"},
+  {brand:"Kanza",maxP:21000,minP:0.6,ratio:"35,000×",mfr:"Noorani & Company",interp:"US/France: 11,000–21,000 ppm; India/Uganda/Belgium: 1–2 ppm"},
+];
+
+// ═══ CHART.JS CONFIG ════════════════════════════════════════════════
+Chart.defaults.color = '#6e7681';
+Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif";
+Chart.defaults.font.size = 11;
+const BG  = '#0d1117';
+const GR  = '#21262d';
+const TXT = '#c9d1d9';
+const MUT = '#6e7681';
+const TT  = {backgroundColor:'#1c2230',borderColor:'#30363d',borderWidth:1,titleColor:'#f0f6fc',bodyColor:'#c9d1d9',padding:10,cornerRadius:6,displayColors:true,boxWidth:10,boxHeight:10,boxPadding:4};
+const AX  = {grid:{color:GR,drawBorder:false},ticks:{color:MUT}};
+const AXT = {grid:{color:GR,drawBorder:false},ticks:{color:TXT}};
+
+// ─── Violation Rate Line Chart ───────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('cViolRate').getContext('2d');
+  const pcts = YRS.map(y=>YD[y].pct);
+  const ptC = pcts.map(p=>p>=80?'#f85149':p>=60?'#d29922':p>=30?'#e3b341':'#3fb950');
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:YRS.map(y=>y===2026?'2026*':y),
+      datasets:[{
+        label:'% above 1 ppm',data:pcts,
+        borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,0.08)',fill:true,tension:0.3,
+        pointBackgroundColor:ptC,pointBorderColor:'#0d1117',pointBorderWidth:2,pointRadius:6,pointHoverRadius:8,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{
+        label:c=>`${c.raw}% of ${YD[YRS[c.dataIndex]].n} samples exceed 1 ppm`
+      }}},
+      scales:{x:AX,y:{...AX,min:0,max:100,ticks:{color:MUT,callback:v=>v+'%'}}}
+    }
+  });
+})();
+
+// ─── Volume Stacked Bar ──────────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('cVolume').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:YRS.map(y=>y===2026?'2026*':y),
+      datasets:[
+        {label:'Compliant / ND (<1)',   data:YRS.map(y=>YD[y].safe),backgroundColor:'#3fb950',stack:'s',borderRadius:0},
+        {label:'Above limit (1–999)',   data:YRS.map(y=>YD[y].mod), backgroundColor:'#e3b341',stack:'s',borderRadius:0},
+        {label:'High (1,000–9,999)',    data:YRS.map(y=>YD[y].h),   backgroundColor:'#d29922',stack:'s',borderRadius:0},
+        {label:'Extreme (≥10,000)',     data:YRS.map(y=>YD[y].e),   backgroundColor:'#f85149',stack:'s',borderRadius:2},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT}},
+      scales:{x:{...AX,stacked:true},y:{...AX,stacked:true}}
+    }
+  });
+})();
+
+// ─── New Toxic Brands Bar ────────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('cNewBrands').getContext('2d');
+  const nbYrs=[2010,2012,2017,2018,2019,2021,2022,2023,2024,2025,2026];
+  const nbV={2010:2,2012:8,2017:16,2018:16,2019:27,2021:3,2022:24,2023:12,2024:26,2025:29,2026:6};
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:nbYrs.map(y=>y===2026?'2026*':y),
+      datasets:[{
+        label:'New toxic brands (≥1,000 ppm)',
+        data:nbYrs.map(y=>nbV[y]),
+        backgroundColor:nbYrs.map(y=>nbV[y]>=20?'rgba(188,140,255,.75)':'rgba(188,140,255,.4)'),
+        borderColor:'#bc8cff',borderWidth:1,borderRadius:3,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`${c.raw} new brands first detected with ≥1,000 ppm`}}},
+      scales:{x:AX,y:{...AX,ticks:{color:MUT,stepSize:5}}}
+    }
+  });
+})();
+
+// ─── Country Share Multi-line ────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('cCtryShare').getContext('2d');
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:SHAR_YRS,
+      datasets:[
+        {label:'🇵🇰 Pakistan',data:SHAR_YRS.map(y=>PAK[y]||0),borderColor:'#f85149',backgroundColor:'rgba(248,81,73,.07)',fill:true,tension:0.3,pointRadius:4,pointHoverRadius:6},
+        {label:'🇲🇽 Mexico',  data:SHAR_YRS.map(y=>MEX[y]||0),borderColor:'#d29922',fill:false,tension:0.3,pointRadius:4,pointHoverRadius:6},
+        {label:'🇮🇳 India',   data:SHAR_YRS.map(y=>IND[y]||0),borderColor:'#58a6ff',fill:false,tension:0.3,pointRadius:4,pointHoverRadius:6},
+        {label:'🇨🇳 China',   data:SHAR_YRS.map(y=>CHN[y]||0),borderColor:'#bc8cff',fill:false,tension:0.3,pointRadius:4,pointHoverRadius:6},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:TXT,boxWidth:14,boxHeight:3,padding:16}},tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{x:AX,y:{...AX,min:0,max:80,ticks:{color:MUT,callback:v=>v+'%'}}}
+    }
+  });
+})();
+
+// ─── Heatmap ─────────────────────────────────────────────────────
+(()=>{
+  const cols=["Belgium","Bangladesh","India","Indonesia","Kenya","Mexico","Nigeria","Philippines","South Africa","Thailand","Uganda","United States"];
+  const hyrs=[2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+  const HM={
+    "Belgium":    {2017:12,2018:18,2019:28,2020:5, 2021:34,2022:11,2023:28,2024:38,2025:11,2026:0},
+    "Bangladesh": {2017:3, 2018:5, 2019:22,2020:0, 2021:19,2022:4, 2023:14,2024:12,2025:4, 2026:0},
+    "India":      {2017:8, 2018:14,2019:30,2020:0, 2021:12,2022:8, 2023:5, 2024:16,2025:0, 2026:2},
+    "Indonesia":  {2017:5, 2018:22,2019:40,2020:0, 2021:28,2022:4, 2023:14,2024:4, 2025:0, 2026:0},
+    "Kenya":      {2017:4, 2018:2, 2019:8, 2020:0, 2021:6, 2022:4, 2023:3, 2024:5, 2025:2, 2026:0},
+    "Mexico":     {2017:2, 2018:4, 2019:16,2020:14,2021:22,2022:9, 2023:19,2024:8, 2025:16,2026:2},
+    "Nigeria":    {2017:3, 2018:2, 2019:5, 2020:0, 2021:3, 2022:2, 2023:2, 2024:3, 2025:1, 2026:0},
+    "Philippines":{2017:5, 2018:10,2019:22,2020:2, 2021:14,2022:4, 2023:8, 2024:16,2025:2, 2026:0},
+    "South Africa":{2017:2,2018:3, 2019:7, 2020:0, 2021:4, 2022:4, 2023:3, 2024:3, 2025:2, 2026:0},
+    "Thailand":   {2017:3, 2018:10,2019:28,2020:0, 2021:19,2022:12,2023:52,2024:21,2025:4, 2026:1},
+    "Uganda":     {2017:4, 2018:2, 2019:14,2020:0, 2021:4, 2022:4, 2023:2, 2024:5, 2025:1, 2026:0},
+    "United States":{2017:18,2018:25,2019:62,2020:14,2021:72,2022:52,2023:68,2024:88,2025:66,2026:20},
+  };
+  const maxV=88;
+  const getCol=v=>{
+    if(!v)return'#1c2230';
+    const t=Math.sqrt(v/maxV);
+    return`rgb(${Math.round(248*t+30*(1-t))},${Math.round(81*t+40*(1-t))},${Math.round(73*t+55*(1-t))})`;
+  };
+  let h=`<table class="hmap"><thead><tr><th></th>`;
+  hyrs.forEach(y=>h+=`<th>${y===2026?'2026*':y}</th>`);
+  h+=`</tr></thead><tbody>`;
+  cols.forEach(col=>{
+    h+=`<tr><td class="rlbl">${col}</td>`;
+    hyrs.forEach(yr=>{
+      const v=HM[col][yr]||0;
+      const fg=v>35?'#fff':'#c9d1d9';
+      h+=`<td style="background:${getCol(v)};color:${fg}" title="${col} ${yr}: ${v} toxic samples">${v||''}</td>`;
+    });
+    h+='</tr>';
+  });
+  h+=`</tbody></table>`;
+  document.getElementById('hmapContainer').innerHTML=h;
+})();
+
+// ─── Mfg Country Horizontal Bar ──────────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cMfgCtry').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:MFG_CTRY.map(([k])=>k),
+      datasets:[{
+        label:'Records attributed',
+        data:MFG_CTRY.map(([,v])=>v),
+        backgroundColor:MFG_CTRY.map(([k])=>k==='Pakistan'?'rgba(248,81,73,.7)':'rgba(88,166,255,.4)'),
+        borderColor:MFG_CTRY.map(([k])=>k==='Pakistan'?'#f85149':'#58a6ff'),
+        borderWidth:1,borderRadius:3,
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT}},
+      scales:{x:AX,y:{...AX,ticks:{color:TXT}}}
+    }
+  });
+})();
+
+// ─── Pakistan Share Line ─────────────────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cPakShare').getContext('2d');
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:SHAR_YRS,
+      datasets:[{
+        label:'Pakistan share',data:SHAR_YRS.map(y=>PAK[y]||0),
+        borderColor:'#f85149',backgroundColor:'rgba(248,81,73,.1)',fill:true,tension:0.3,
+        pointRadius:5,pointBackgroundColor:'#f85149',pointBorderColor:'#0d1117',pointBorderWidth:2,pointHoverRadius:7,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`Pakistan: ${c.raw}% of records`}}},
+      scales:{x:AX,y:{...AX,min:0,max:80,ticks:{color:MUT,callback:v=>v+'%'}}}
+    }
+  });
+})();
+
+// ─── Category Breakdown ──────────────────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cCatBr').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:CATS.map(c=>c.c),
+      datasets:[
+        {label:'Compliant/ND',    data:CATS.map(c=>c.s),backgroundColor:'#3fb950',stack:'s',borderRadius:0},
+        {label:'Above limit',     data:CATS.map(c=>c.m),backgroundColor:'#e3b341',stack:'s',borderRadius:0},
+        {label:'High 1k–9,999',  data:CATS.map(c=>c.h),backgroundColor:'#d29922',stack:'s',borderRadius:0},
+        {label:'Extreme ≥10,000',data:CATS.map(c=>c.e),backgroundColor:'#f85149',stack:'s',borderRadius:2},
+      ]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT}},
+      scales:{x:{...AX,stacked:true},y:{...AX,stacked:true,ticks:{color:TXT}}}
+    }
+  });
+})();
+
+// ─── Cream Year Trend ────────────────────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cCreamYr').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:CREAM_YRS,
+      datasets:[
+        {label:'Compliant/ND', data:CREAM_YRS.map(y=>CYR[y].s),backgroundColor:'#3fb950',stack:'s',borderRadius:0},
+        {label:'High',         data:CREAM_YRS.map(y=>CYR[y].h),backgroundColor:'#d29922',stack:'s',borderRadius:0},
+        {label:'Extreme',      data:CREAM_YRS.map(y=>CYR[y].e),backgroundColor:'#f85149',stack:'s',borderRadius:2},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT}},
+      scales:{x:{...AX,stacked:true},y:{...AX,stacked:true}}
+    }
+  });
+})();
+
+// ─── Category Distribution Doughnut ──────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cCatDist').getContext('2d');
+  const top5=CATS.slice(0,5);
+  const other=CATS.slice(5).reduce((s,c)=>s+c.n,0);
+  const labels=[...top5.map(c=>c.c),'Other'];
+  const vals=[...top5.map(c=>c.n),other];
+  const bgc=['#58a6ff','#3fb950','#bc8cff','#d29922','#e3b341','#484f58'];
+  new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data:vals,backgroundColor:bgc,borderColor:'#0d1117',borderWidth:2,hoverOffset:4}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{
+        legend:{position:'right',labels:{color:TXT,boxWidth:10,boxHeight:10,padding:10,font:{size:11}}},
+        tooltip:{...TT,callbacks:{label:c=>`${c.label}: ${c.raw} (${Math.round(c.raw/2105*100)}%)`}}
+      }
+    }
+  });
+})();
+
+// ─── Manufacturer Cards ──────────────────────────────────────────
+document.getElementById('mfrGrid').innerHTML=MANUFACTURERS.map(m=>{
+  const tierCls=m.tier==='crit'?'mc-crit':m.tier==='high'?'mc-high':'mc-safe';
+  const bdCls=m.tier==='crit'?'bd-crit':m.tier==='high'?'bd-high':'bd-safe';
+  const bdTxt=m.tier==='crit'?'EXTREME Hg':m.tier==='high'?'HIGH Hg':'COMPLIANT';
+  const ppmC=m.tier==='crit'?'#f85149':m.tier==='high'?'#d29922':'#3fb950';
+  const ppmLbl=m.maxP?m.maxP.toLocaleString()+' ppm':'ND';
+  const chips=m.brands.map(b=>`<span class="chip chip-t">${b}</span>`).join('');
+  return`<div class="mc ${tierCls}">
+    <div class="mc-head">
+      <div><div class="mc-name">${m.name}</div><div class="mc-loc">📍 ${m.loc}</div></div>
+      <span class="mc-badge ${bdCls}">${bdTxt}</span>
+    </div>
+    <div class="mc-stats">
+      <div class="mc-s"><span class="mc-sv" style="color:${ppmC}">${ppmLbl}</span><span class="mc-sl">Peak Hg</span></div>
+      <div class="mc-s"><span class="mc-sv">${m.n}</span><span class="mc-sl">Samples</span></div>
+      <div class="mc-s"><span class="mc-sv" style="color:${m.pct>50?'#f85149':'#3fb950'}">${m.pct}%</span><span class="mc-sl">&gt;1 ppm</span></div>
+      <div class="mc-s"><span class="mc-sv" style="font-size:0.75rem">${m.cols}</span><span class="mc-sl">Found in</span></div>
+    </div>
+    <div class="mc-brands">${chips}</div>
+    ${m.note?`<div class="mc-note">⚠️ ${m.note}</div>`:''}
+  </div>`;
+}).join('');
+
+// ─── Manufacturer Peak Bar ───────────────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cMfrPeak').getContext('2d');
+  const show=MANUFACTURERS.filter(m=>m.maxP>0);
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:show.map(m=>m.name),
+      datasets:[{
+        label:'Peak Hg (ppm)',
+        data:show.map(m=>m.maxP),
+        backgroundColor:show.map(m=>m.tier==='crit'?'rgba(248,81,73,.7)':'rgba(210,153,34,.7)'),
+        borderColor:show.map(m=>m.tier==='crit'?'#f85149':'#d29922'),
+        borderWidth:1,borderRadius:3,
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`Peak: ${c.raw.toLocaleString()} ppm · ${show[c.dataIndex].pct}% above limit`}}},
+      scales:{
+        x:{...AX,type:'logarithmic',min:1,ticks:{color:MUT,callback:v=>v>=10000?(v/1000)+'k':v}},
+        y:{...AX,ticks:{color:TXT,font:{size:10}}}
+      }
+    }
+  });
+})();
+
+// ─── Variance Table ──────────────────────────────────────────────
+document.getElementById('varBody').innerHTML=VARIANCES.map(v=>{
+  const n=parseInt(v.ratio.replace(/[^0-9]/g,''));
+  const rCls=n>1000000?'rx':'ro';
+  const fmtP=p=>p>=10000?(p/1000).toFixed(0)+'k':p.toString();
+  return`<tr>
+    <td><strong>${v.brand}</strong></td>
+    <td style="color:#f85149;font-weight:700">${fmtP(v.maxP)} ppm</td>
+    <td style="color:#3fb950">${v.minP} ppm</td>
+    <td class="${rCls}">${v.ratio}</td>
+    <td style="color:#6e7681;font-size:0.74rem">${v.mfr}</td>
+    <td style="color:#6e7681;font-size:0.74rem;max-width:280px">${v.interp}</td>
+  </tr>`;
+}).join('');
+
+// ─── Variance Chart ──────────────────────────────────────────────
+(()=>{
+  const ctx=document.getElementById('cVariance').getContext('2d');
+  const ratioNums=VARIANCES.map(v=>parseInt(v.ratio.replace(/[^0-9]/g,'')));
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:VARIANCES.map(v=>v.brand),
+      datasets:[{
+        label:'Variance ratio (max÷min)',
+        data:ratioNums,
+        backgroundColor:ratioNums.map(r=>r>1000000?'rgba(248,81,73,.7)':'rgba(210,153,34,.7)'),
+        borderColor:ratioNums.map(r=>r>1000000?'#f85149':'#d29922'),
+        borderWidth:1,borderRadius:3,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`Ratio: ${VARIANCES[c.dataIndex].ratio}`}}},
+      scales:{
+        x:{...AX,ticks:{color:TXT}},
+        y:{...AX,type:'logarithmic',min:1,ticks:{color:MUT,callback:v=>{
+          if(v>=1e6)return(v/1e6).toFixed(0)+'M×';
+          if(v>=1e3)return(v/1e3).toFixed(0)+'k×';
+          return v+'×';
+        }}}
+      }
+    }
+  });
+})();
+
+// ─── Tab switching ───────────────────────────────────────────────
+function tab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tn').forEach(t=>t.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  el.classList.add('on');
+}
+</script>
+</body>
+</html>
